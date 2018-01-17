@@ -1,0 +1,28 @@
+{
+  "name": "clusterx",
+  "description": "Fast clustering by automatic search and find of density peaks",
+  "tags": ["multivariate statistics"],
+  "authors": ["tercen"],
+  "urls": ["https://github.com/tercen/clusterx_operator"],
+  "properties": [
+    {
+    "kind": "EnumeratedProperty",
+    "name": "dimReduction",
+    "defaultValue": "NULL",
+    "values": [
+      "tsne",
+      "pca",
+      "NULL"
+    ],
+    "description": "Method choosed for dimension reduction."
+  },
+  {
+    "kind": "DoubleProperty",
+    "name": "outDim",
+    "defaultValue": 2,
+    "description": "Dimension reduction output."
+  },
+  ]
+}
+
+
