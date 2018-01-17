@@ -19,7 +19,7 @@ packrat::init(options = list(
   use.cache = TRUE
   ))
   
-git add -A && git commit -m "init" && git tag -a 0.0.1 -m "++" && git push && git push --tags
+git add -A && git commit -m "bad json operator file" && git tag -a 0.0.2 -m "++" && git push && git push --tags
 ```
 
 ```R
