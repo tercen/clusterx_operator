@@ -261,19 +261,19 @@ Requires: magrittr, stringi
 
 Package: tercen
 Source: github
-Version: 0.4.13
-Hash: 88b569337037acf90d4cb58202c94ea1
+Version: 0.4.21
+Hash: 8d74606d3d93f0d37681d605e8615b0f
 Requires: R6, dplyr, httr, jsonlite, rtson, tibble, yaml
 GithubRepo: teRcen
 GithubUsername: tercen
-GithubRef: 0.4.13
-GithubSha1: 92d9ba1a8422b973decad9c18253fe1037f1ad20
+GithubRef: 0.4.21
+GithubSha1: 310c7ecc732be2444923d6fe5f5d09066fc8322c
 
 Package: tibble
 Source: CRAN
-Version: 1.4.1
-Hash: 2e61874117a0824203d426b51e8b365d
-Requires: crayon, pillar, rlang
+Version: 1.4.2
+Hash: 83895360ce4f8d2ce92eee00526b5b0b
+Requires: cli, crayon, pillar, rlang
 
 Package: utf8
 Source: CRAN
