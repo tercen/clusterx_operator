@@ -15,6 +15,6 @@ if (ctx$op.value('dimReduction') != "NULL") dimReduction = ctx$op.value('dimRedu
 dataX = ClusterX(data, dimReduction=dimReduction, outDim=as.integer(ctx$op.value('outDim')))
 
 data.frame(.ci = seq(from=0,to=length(dataX$cluster)-1),
-           cluster=as.character(dataX$cluster)) %>%
+           cluster=paste0("cluster",dataX$cluster)) %>%
   ctx$addNamespace() %>%
   ctx$save()
