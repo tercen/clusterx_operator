@@ -21,6 +21,12 @@
     "name": "outDim",
     "defaultValue": 2,
     "description": "Dimension reduction output."
+  },
+  {
+    "kind": "DoubleProperty",
+    "name": "seed",
+    "defaultValue": -1,
+    "description": "Seed for random number generation (used for tSNE). if less than 0, set a Random seed"
   }
   ]
 }
