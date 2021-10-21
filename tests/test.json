@@ -1,0 +1,20 @@
+{
+  "kind": "OperatorUnitTest",
+  "name": "clusterX",
+  "namespace": "test",
+  "propertyValues": [
+    {
+    "kind": "PropertyValue",
+    "name": "seed",
+    "value": "42"
+  }
+  ], 
+  "inputDataUri": "lucas_measurement_exp.tsv",
+  "outputDataUri": ["table1.csv","table2.csv"],
+  "columns": ["Observation"],
+  "rows": ["Variable"],
+  "colors": [],
+  "labels": [],
+  "yAxis": "Measurement",
+  "xAxis": ""
+}
