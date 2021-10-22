@@ -5,6 +5,11 @@
   "propertyValues": [
     {
     "kind": "PropertyValue",
+    "name": "dimReduction",
+    "value": "tsne"
+  },
+    {
+    "kind": "PropertyValue",
     "name": "seed",
     "value": "42"
   }
