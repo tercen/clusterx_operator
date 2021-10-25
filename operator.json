@@ -1,7 +1,7 @@
 {
   "name": "ClusterX",
   "description": "Performs fast clustering of data by using automatic search and find of density peaks. Works best with low dimentional data (Less than 5 dimentions).",
-  "tags": ["multivariate statistics"],
+  "tags": ["multivariate statistics","clustering"],
   "authors": ["tercen"],
   "urls": ["https://github.com/tercen/clusterx_operator"],
   "properties": [
