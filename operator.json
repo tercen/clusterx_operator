@@ -21,14 +21,14 @@
     {
       "kind": "DoubleProperty",
       "name": "outDim",
-      "defaultValue": "2",
+      "defaultValue": 2,
       "values": {},
       "description": "Dimension reduction output."
     },
     {
       "kind": "DoubleProperty",
       "name": "seed",
-      "defaultValue": "-1",
+      "defaultValue": -1,
       "values": {},
       "description": "Seed for random number generation (used for tSNE). if less than 0, set a Random seed"
     }
