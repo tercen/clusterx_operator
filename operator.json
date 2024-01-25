@@ -1,6 +1,6 @@
 {
   "name": "ClusterX",
-  "description": "Performs fast clustering of data by using automatic search and find of density peaks. Works best with low dimentional data (Less than 5 dimentions).",
+  "description": "Clusters data points using an algorithm that finds density peaks.",
   "tags": [
     "clustering"
   ],
@@ -15,7 +15,11 @@
       "kind": "EnumeratedProperty",
       "name": "dimReduction",
       "defaultValue": "NULL",
-      "values": ["tsne", "pca", "NULL"],
+      "values": [
+        "tsne",
+        "pca",
+        "NULL"
+      ],
       "description": "Method choosed for dimension reduction."
     },
     {
