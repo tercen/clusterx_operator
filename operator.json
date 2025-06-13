@@ -1,40 +1,77 @@
 {
   "name": "ClusterX",
-  "description": "Clusters data points using an algorithm that finds density peaks.",
-  "tags": [
-    "clustering"
-  ],
-  "authors": [
-    "tercen"
-  ],
-  "urls": [
-    "https://github.com/tercen/clusterx_operator"
-  ],
+  "description": "Performs fast clustering by automatic search and detection of density peaks.",
+  "tags": ["clustering"],
+  "authors": ["tercen"],
+  "urls": ["https://github.com/tercen/clusterx_operator"],
   "properties": [
     {
       "kind": "EnumeratedProperty",
       "name": "dimReduction",
       "defaultValue": "NULL",
-      "values": [
-        "tsne",
-        "pca",
-        "NULL"
-      ],
-      "description": "Method choosed for dimension reduction."
+      "values": ["tsne", "pca", "NULL"],
+      "description": "Method chosen for dimension reduction to perform."
     },
     {
       "kind": "DoubleProperty",
       "name": "outDim",
       "defaultValue": 2,
-      "values": {},
-      "description": "Dimension reduction output."
+      "description": "Number of dimensions to return."
     },
     {
       "kind": "DoubleProperty",
       "name": "seed",
       "defaultValue": -1,
-      "values": {},
-      "description": "Seed for random number generation (used for tSNE). if less than 0, set a Random seed"
+      "description": "Seed for random number generation. If less than 0, a random seed is set."
     }
-  ]
+  ],
+  "operatorSpec": {
+    "kind": "OperatorSpec",
+    "ontologyUri": "https://tercen.com/_ontology/tercen",
+    "ontologyVersion": "0.0.1",
+    "inputSpecs": [
+      {
+        "kind": "CrosstabSpec",
+        "metaFactors": [
+          {
+            "kind": "MetaFactor",
+            "name": "Variable",
+            "type": "",
+            "description": "Variable identifiers (channel, markers).",
+            "ontologyMapping": "variable",
+            "crosstabMapping": "row",
+            "cardinality": "1..n",
+            "factors": []
+          },
+          {
+            "kind": "MetaFactor",
+            "name": "Observation",
+            "type": "",
+            "description": "Observation identifiers (cells, samples, individuals).",
+            "ontologyMapping": "observation",
+            "crosstabMapping": "column",
+            "cardinality": "1..n",
+            "factors": []
+          }
+        ],
+        "axis": [
+          {
+            "kind": "AxisSpec",
+            "metaFactors": [
+              {
+                "kind": "MetaFactor",
+                "name": "Measurement",
+                "type": "numeric",
+                "description": "Measurement values (numeric, per cell).",
+                "ontologyMapping": "measurement",
+                "crosstabMapping": "y",
+                "cardinality": "1",
+                "factors": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
 }
