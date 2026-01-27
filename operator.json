@@ -1,15 +1,25 @@
 {
   "name": "ClusterX",
   "description": "Performs fast clustering by automatic search and detection of density peaks.",
-  "tags": ["clustering"],
-  "authors": ["tercen"],
-  "urls": ["https://github.com/tercen/clusterx_operator"],
+  "tags": [
+    "clustering"
+  ],
+  "authors": [
+    "tercen"
+  ],
+  "urls": [
+    "https://github.com/tercen/clusterx_operator"
+  ],
   "properties": [
     {
       "kind": "EnumeratedProperty",
       "name": "dimReduction",
       "defaultValue": "NULL",
-      "values": ["tsne", "pca", "NULL"],
+      "values": [
+        "tsne",
+        "pca",
+        "NULL"
+      ],
       "description": "Method chosen for dimension reduction to perform."
     },
     {
@@ -69,6 +79,36 @@
                 "factors": []
               }
             ]
+          }
+        ]
+      }
+    ],
+    "outputSpecsV2": [
+      {
+        "kind": "OperatorJoinSpec",
+        "joinOperators": [
+          {
+            "kind": "JoinOperator",
+            "joinType": "left",
+            "leftPair": {
+              "kind": "ColumnPair",
+              "lColumns": [
+                "Observation"
+              ],
+              "rColumns": [
+                "Observation"
+              ]
+            },
+            "rightRelation": {
+              "kind": "TableRelation",
+              "attributes": [
+                {
+                  "kind": "Attribute",
+                  "name": "cluster",
+                  "type": "string"
+                }
+              ]
+            }
           }
         ]
       }
