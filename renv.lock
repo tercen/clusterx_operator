@@ -472,23 +472,11 @@
     },
     "tercen": {
       "Package": "tercen",
-      "Version": "0.13.0",
+      "Version": "0.12.5",
       "Source": "Repository",
       "Repository": "TERCEN",
-      "Requirements": [
-        "R6",
-        "dplyr",
-        "httr",
-        "mtercen",
-        "openssl",
-        "rstudioapi",
-        "teRcenHttp",
-        "tercenApi",
-        "tibble",
-        "uuid",
-        "yaml"
-      ],
-      "Hash": "2b99817b3a000b5b4591b5173947a0ac"
+      "Remotes": "tercen/tercenApi@0.12.2",
+      "Hash": "36c4ef14ceaa34ec985628e21b06faad"
     },
     "tibble": {
       "Package": "tibble",
@@ -686,20 +674,15 @@
     },
     "tercenApi": {
       "Package": "tercenApi",
-      "Version": "0.13.0",
+      "Version": "0.12.2",
       "Source": "GitHub",
       "RemoteType": "github",
       "RemoteHost": "api.github.com",
-      "RemoteRepo": "tercenApi",
+      "RemoteRepo": "teRcenApi",
       "RemoteUsername": "tercen",
-      "RemoteRef": "HEAD",
-      "RemoteSha": "7f4b5cbdb628ed5601f2b099a9831b22d799e4a1",
-      "Requirements": [
-        "R6",
-        "teRcenHttp",
-        "yaml"
-      ],
-      "Hash": "7909038e2dd7857620f8df770467cca7"
+      "RemoteRef": "0.12.2",
+      "RemoteSha": "7f1274676d90681341833c289688e80f45c2638f",
+      "Hash": "7135d987673dd9e5fcaa115c128d00cc"
     },
     "uuid": {
       "Package": "uuid",
