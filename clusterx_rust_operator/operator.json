@@ -1,0 +1,119 @@
+{
+  "name": "ClusterX (Rust)",
+  "description": "Performs fast clustering by automatic search and detection of density peaks. Rust port of tercen/clusterx_operator — parity with the R reference: exact labels on dimReduction NULL (golden fixtures, 100 and 12000 observations), exact labels on the reference's t-SNE mapping, and a reseed envelope for the stochastic t-SNE path (ARI inside the reference's own seed spread).",
+  "tags": [
+    "clustering"
+  ],
+  "authors": [
+    "tercen"
+  ],
+  "urls": [
+    "https://github.com/tercen/clusterx_operator"
+  ],
+  "communicationProtocol": "grpc",
+  "container": "ghcr.io/tercen/clusterx_rust_operator:0.1.0",
+  "properties": [
+    {
+      "kind": "EnumeratedProperty",
+      "name": "dimReduction",
+      "defaultValue": "NULL",
+      "values": [
+        "tsne",
+        "pca",
+        "NULL"
+      ],
+      "description": "Method chosen for dimension reduction to perform. NULL clusters the projected measurements directly; pca runs prcomp(scale=TRUE) and clusters the first outDim axes; tsne runs Barnes-Hut t-SNE to 2 axes (stochastic, seeded by `seed`)."
+    },
+    {
+      "kind": "DoubleProperty",
+      "name": "outDim",
+      "defaultValue": 2,
+      "description": "Number of dimensions to return (pca only; tsne always reduces to 2, as in the R operator)."
+    },
+    {
+      "kind": "DoubleProperty",
+      "name": "seed",
+      "defaultValue": -1,
+      "description": "Seed for random number generation (draws of the dc down-sample when there are more than 10000 observations, and the t-SNE random start). If less than 0, a random seed is set."
+    }
+  ],
+  "operatorSpec": {
+    "kind": "OperatorSpec",
+    "ontologyUri": "https://tercen.com/_ontology/tercen",
+    "ontologyVersion": "0.0.1",
+    "inputSpecs": [
+      {
+        "kind": "CrosstabSpec",
+        "metaFactors": [
+          {
+            "kind": "MetaFactor",
+            "name": "Variable",
+            "type": "",
+            "description": "Variable identifiers (channel, markers).",
+            "ontologyMapping": "variable",
+            "crosstabMapping": "row",
+            "cardinality": "1..n",
+            "factors": []
+          },
+          {
+            "kind": "MetaFactor",
+            "name": "Observation",
+            "type": "",
+            "description": "Observation identifiers (cells, samples, individuals).",
+            "ontologyMapping": "observation",
+            "crosstabMapping": "column",
+            "cardinality": "1..n",
+            "factors": []
+          }
+        ],
+        "axis": [
+          {
+            "kind": "AxisSpec",
+            "metaFactors": [
+              {
+                "kind": "MetaFactor",
+                "name": "Measurement",
+                "type": "numeric",
+                "description": "Measurement values (numeric, per cell).",
+                "ontologyMapping": "measurement",
+                "crosstabMapping": "y",
+                "cardinality": "1",
+                "factors": []
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "outputSpecsV2": [
+      {
+        "kind": "OperatorJoinSpec",
+        "joinOperators": [
+          {
+            "kind": "JoinOperator",
+            "joinType": "left",
+            "leftPair": {
+              "kind": "ColumnPair",
+              "lColumns": [
+                "Observation"
+              ],
+              "rColumns": [
+                "Observation"
+              ]
+            },
+            "rightRelation": {
+              "kind": "TableRelation",
+              "attributes": [
+                {
+                  "kind": "Attribute",
+                  "name": "cluster",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  }
+}
