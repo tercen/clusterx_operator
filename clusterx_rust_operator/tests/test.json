@@ -1,0 +1,31 @@
+{
+  "kind": "OperatorUnitTest",
+  "name": "clusterx_null_rust",
+  "namespace": "test",
+  "propertyValues": [
+    {
+      "kind": "PropertyValue",
+      "name": "dimReduction",
+      "value": "NULL"
+    },
+    {
+      "kind": "PropertyValue",
+      "name": "seed",
+      "value": "42"
+    }
+  ],
+  "inputDataUri": "lucas_measurement_exp.tsv",
+  "outputDataUri": [
+    "table1_null.csv"
+  ],
+  "columns": [
+    "Observation"
+  ],
+  "rows": [
+    "Variable"
+  ],
+  "colors": [],
+  "labels": [],
+  "yAxis": "Measurement",
+  "xAxis": ""
+}

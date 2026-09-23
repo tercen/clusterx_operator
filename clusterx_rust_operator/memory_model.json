@@ -1,0 +1,13 @@
+{
+  "kind": "OperatorEstimateModel",
+  "intercept": 4e-06,
+  "offset": 100.0,
+  "features": [
+    {
+      "kind": "Feature",
+      "name": "n_cols",
+      "coefficient": 1.0,
+      "exponent": 2.0
+    }
+  ]
+}
