@@ -9,7 +9,7 @@ use tercen_rs::context::ContextBase;
 pub enum DimReduction {
     /// Cluster the projected measurements directly.
     Null,
-    /// `prcomp(data, scale = TRUE)`, then cluster the first `out_dim` axes.
+    /// `prcomp(data, scale. = TRUE)`, then cluster the first `out_dim` axes.
     Pca,
     /// Barnes–Hut t-SNE to 2 axes, then cluster them.
     Tsne,

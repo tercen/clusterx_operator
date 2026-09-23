@@ -125,4 +125,13 @@ dump_int(rs$cluster, "synthetic12k_cluster.csv")
 dump(as.data.frame(cbind(rho = rs$rho, delta = rs$delta, higherID = rs$higherID)), "synthetic12k_rho_delta.csv")
 dump_int(rs$peakID, "synthetic12k_peakID.csv")
 
+## ---- 3b. the clustering core on the reference's own tsne-42 mapping -------
+# Stronger than the labels alone: dc, rho, delta, higherID and peakID of the
+# core, run on the mapping the reference produced at seed 42.
+cat("lucas / core on the tsne-42 mapping\n")
+r42 <- ClusterX(mapped42, dimReduction = NULL)
+dump(c(dc = r42$dc), "lucas_tsne42map_dc.csv")
+dump(as.data.frame(cbind(rho = r42$rho, delta = r42$delta, higherID = r42$higherID)), "lucas_tsne42map_rho_delta.csv")
+dump_int(r42$peakID, "lucas_tsne42map_peakID.csv")
+
 cat("done\n")

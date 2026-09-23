@@ -280,11 +280,39 @@ fn lucas_pca_reproduces_the_reference_up_to_sign() {
 #[test]
 fn the_clustering_core_reproduces_the_reference_on_the_reference_tsne_map() {
     // The exact test of the core on t-SNE-shaped data: take the mapping the
-    // reference produced with seed 42, cluster it here, require the same
-    // labels.
+    // reference produced with seed 42, cluster it here, and require the same
+    // dc, rho, delta, peakID and labels.
     let want = read_matrix("lucas_tsne_42_mapped.csv");
     let n = want.len() / 2;
     let res = clusterx_null(&want, n, 2, 42);
+
+    assert_eq!(
+        res.dc,
+        read_one_f64(&format!("{}/lucas_tsne42map_dc.csv", dir())),
+        "dc on the reference's tsne mapping must match bitwise"
+    );
+    let raw: Vec<Vec<String>> =
+        std::fs::read_to_string(format!("{}/lucas_tsne42map_rho_delta.csv", dir()))
+            .unwrap()
+            .lines()
+            .skip(1) // header: rho,delta,higherID
+            .map(|l| l.split(',').map(|x| x.trim().to_string()).collect())
+            .collect();
+    let want_rho: Vec<f64> = raw.iter().map(|r| r[0].parse().unwrap()).collect();
+    for (i, (&a, &b)) in res.rho.iter().zip(&want_rho).enumerate() {
+        let rel = (a - b).abs() / b.abs().max(1e-12);
+        assert!(rel <= 1e-12, "tsne-map rho[{i}]: {a} vs {b} ({rel:e})");
+    }
+    let want_delta: Vec<f64> = raw.iter().map(|r| r[1].parse().unwrap()).collect();
+    assert_delta_close(&res, &want_delta, "tsne map");
+    let want_higher: Vec<usize> = raw.iter().map(|r| r[2].parse().unwrap()).collect();
+    for (i, (&a, &b)) in res.higher_id.iter().zip(&want_higher).enumerate() {
+        assert_eq!(a + 1, b, "tsne-map higherID[{i}] differs");
+    }
+    assert_eq!(
+        res.peak_id.iter().map(|p| p + 1).collect::<Vec<_>>(),
+        read_ints(&format!("{}/lucas_tsne42map_peakID.csv", dir()))
+    );
     // this golden carries the operator's rendered labels (paste0("cluster", k))
     let rendered: Vec<String> = res
         .cluster
@@ -315,7 +343,10 @@ fn the_full_tsne_path_lands_inside_the_reference_reseed_envelope() {
         })
         .collect();
 
-    // The envelope: pairwise ARIs between the reference's own five seeds.
+    // The envelope: pairwise ARIs between the reference's own five seeds,
+    // with a floor above a random partition (~0) so the test can fail —
+    // the reference's own spread dips slightly below zero, which would make
+    // any labelling pass (revglm review, 2026-09-23).
     let env = read_csv_rows(&format!("{}/lucas_tsne_envelope.csv", dir()));
     let mut min_ari = f64::INFINITY;
     let mut seeds: Vec<(usize, usize, f64)> = Vec::new();
@@ -326,19 +357,20 @@ fn the_full_tsne_path_lands_inside_the_reference_reseed_envelope() {
         min_ari = min_ari.min(ari);
         seeds.push((a, b, ari));
     }
+    let floor = min_ari.max(0.10);
     // The reference's labels at each seed, re-derived from the envelope?
     // No — the reference's seed-42 labels are committed; compare against
     // them with the spread's floor as the bar.
     let want = read_lines(&format!("{}/lucas_tsne_42_cluster.csv", dir()));
     let got_ari = ari(&rust_labels, &want);
     assert!(
-        got_ari >= min_ari,
-        "ARI(port, reference @ seed 42) = {got_ari:.4} is below the reference's own spread \
-         floor {min_ari:.4}"
+        got_ari >= floor,
+        "ARI(port, reference @ seed 42) = {got_ari:.4} is below the floor {floor:.4} \
+         (reference's own spread floor {min_ari:.4})"
     );
     println!(
-        "tsne reseed envelope: floor {min_ari:.4}, port vs reference {got_ari:.4} \
-         ({} pairwise ARIs)",
+        "tsne reseed envelope: floor {floor:.4} (spread floor {min_ari:.4}), \
+         port vs reference {got_ari:.4} ({} pairwise ARIs)",
         seeds.len()
     );
 }

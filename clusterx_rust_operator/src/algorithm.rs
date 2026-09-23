@@ -150,7 +150,9 @@ pub fn estimate_dc(
 
     for _ in 0..MAX_DC_ITER {
         let rate = neighbour_rate(&tri, m, dc);
-        if (0.01..0.02).contains(&rate) {
+        // R (ClusterX.R): `if(neighborRate > neighborRateLow && neighborRate < neighborRateHigh)`
+        // — strict on both ends; a rate of exactly 0.01 or 0.02 keeps searching.
+        if rate > 0.01 && rate < 0.02 {
             return Ok(dc);
         }
         if rate >= 0.02 {

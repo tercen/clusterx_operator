@@ -25,7 +25,7 @@ Properties (identical to the R operator): `dimReduction` (`tsne`/`pca`/`NULL`),
 | `rng` | R's Mersenne-Twister + `set.seed` scramble + `sample()` rejection, transliterated from `flowsom-rs` (which validated it against R 4.0.4) |
 | `special` | Student-t quantile for the ESD test (regularised incomplete beta + bisection) |
 | `algorithm` | `estimateDc`, `localDensity`, `minDistToHigher`, `peakDetect` (generalised ESD), `clusterAssign` — pure functions over slices |
-| `dimred` | PCA (`prcomp(scale=TRUE)` semantics, cyclic Jacobi) and Barnes–Hut t-SNE (transliterated from Rtsne 0.17's `tsne.cpp`/`sptree.cpp`, vp-tree replaced by a brute-force partial sort) |
+| `dimred` | PCA (`prcomp(scale.=TRUE)` semantics, cyclic Jacobi) and Barnes–Hut t-SNE (transliterated from Rtsne 0.17's `tsne.cpp`/`sptree.cpp`, vp-tree replaced by a brute-force partial sort) |
 | `output` | the per-column result table (`.ci` + `<namespace>.cluster`) |
 | `context`, `upload`, `pagecache`, `progress`, `tson` | copied from `asinh_rust_operator`/`read_fcs_rust_operator` (the shared-plumbing debt the skill documents) |
 
@@ -48,12 +48,15 @@ port against those dumps. Proven, per path:
   one step apart on a 1e-15 perturbation of the mapped matrix.
 * **tsne (stochastic)** — reseed envelope per the skill: the reference was run
   at seeds {1, 7, 42, 123, 777}, its pairwise label ARIs are committed
-  (`lucas_tsne_envelope.csv`, spread −0.06…0.47), and the port must land
-  inside that spread against the reference's seed-42 labels. The **clustering
-  core** is separately checked label-exactly on the reference's own seed-42
-  t-SNE mapping — the reduction is what is stochastic, not the clustering.
-  Bitwise agreement with Rtsne is not achievable without LAPACK's exact PCA,
-  so no stronger claim is made.
+  (`lucas_tsne_envelope.csv`, spread −0.06…0.47), and the port must reach an
+  ARI of at least 0.10 against the reference's seed-42 labels — above a
+  random partition (~0), so the test can fail (the reference's own spread
+  floor is slightly negative, which would make any labelling pass; raised per
+  the 2026-09-23 review). The **clustering core** is separately checked
+  against the reference's dc/rho/delta/higherID/peakID/labels on the
+  reference's own seed-42 t-SNE mapping — the reduction is what is stochastic,
+  not the clustering. Bitwise agreement with Rtsne is not achievable without
+  LAPACK's exact PCA, so no stronger claim is made.
 
 Two reference behaviours had to be **reproduced** (not fixed) for this:
 
@@ -84,6 +87,22 @@ Deliberate deviations (guards where the reference loops or returns garbage):
   removed for exactly this reason: R never came back.)
 * Zero-variance variables under `pca`: R hands LAPACK the NaN; the port
   refuses.
+
+Two bugs found and fixed while wiring the t-SNE gradient, both worth
+remembering (the first cost a morning):
+
+* **`neg_f` slices.** The C++ passes `neg_f + n * D` to
+  `computeNonEdgeForces` — each point writes its OWN two-element slice.
+  Passing the whole array to every point makes each point overwrite the
+  previous one's repulsion; the gradient degenerates to pure attraction and
+  the embedding collapses into the all-coincident state (sum_q → N(N−1),
+  every label `cluster1`). The C++ is unforgiving here because the tree
+  recursion passes the pointer through unchanged — the Rust equivalent is a
+  per-point subslice.
+* **`DBL_MIN` is the smallest POSITIVE double.** `computeProbabilities`
+  initialises its row sum to it; Rust's `f64::MIN` is the most NEGATIVE
+  value, which silently poisons the entropy search (NaN comparisons) and
+  drives beta to zero. `f64::MIN_POSITIVE` is the right constant.
 
 Known non-matching last bits, and why they are safe: R's `mean`/`rowSums`
 accumulate in long double, this port in f64 (rho agrees to ~1e-14); `qt` is

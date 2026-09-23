@@ -1,7 +1,7 @@
 //! Dimension reduction, ported from the two methods the R operator exposes
 //! through `reference/cytof_dimensionReduction.R`:
 //!
-//! * `pca` — `prcomp(data, scale = TRUE)$x[, 1:outDim]`. R's `prcomp` uses
+//! * `pca` — `prcomp(data, scale. = TRUE)$x[, 1:outDim]`. R's `prcomp` uses
 //!   LAPACK, whose singular-vector signs are arbitrary; a sign flip is a
 //!   reflection, and the clustering downstream works on Euclidean distances,
 //!   so it cannot change `dc`, `rho`, `delta` or the labels (asserted by the
@@ -15,11 +15,11 @@
 //!   start draws from R's RNG (`rng::RRng`) so a `Seed` makes a run
 //!   repeatable. Bitwise agreement with Rtsne is *not* claimed — the PCA
 //!   stage's LAPACK signs already differ — so this path is verified as a
-//!   reseed envelope, not goldens (see `tests/parity/README`).
+//!   reseed envelope, not goldens (see `tests/parity/README.md`).
 
 use crate::rng::RRng;
 
-/// One PCA map (`prcomp(..., scale = TRUE)`): center and scale each column,
+/// One PCA map (`prcomp(..., scale. = TRUE)`): center and scale each column,
 /// then project onto the leading eigenvectors of the scaled Gram matrix.
 ///
 /// Returns an `n × k` row-major matrix, `k = min(out_dim, d)`.
@@ -167,6 +167,7 @@ pub fn tsne(data: &[f64], n: usize, d: usize, rng: &mut RRng) -> anyhow::Result<
     let mut col_p: Vec<u32> = Vec::with_capacity(n * k_nn);
     let mut val_p: Vec<f64> = Vec::with_capacity(n * k_nn);
     let mut row: Vec<(f64, u32)> = Vec::with_capacity(n);
+    let mut cur_p = vec![0.0f64; k_nn];
     for i in 0..n {
         row.clear();
         for j in 0..n {
@@ -181,10 +182,14 @@ pub fn tsne(data: &[f64], n: usize, d: usize, rng: &mut RRng) -> anyhow::Result<
             row.push((ss, j as u32));
         }
         row.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap().then(a.1.cmp(&b.1)));
-        for &(ss, j) in row.iter().take(k_nn) {
-            // computeProbabilities consumes *distances*, not squared ones
+        // Gaussian calibration of the row to the target perplexity
+        // (`computeProbabilities`): the distances are the K neighbours', and
+        // the beta search returns a row of probabilities summing to 1.
+        let distances: Vec<f64> = row.iter().take(k_nn).map(|e| e.0.sqrt()).collect();
+        compute_probabilities(PERPLEXITY, &distances, &mut cur_p);
+        for (m, &(_, j)) in row.iter().enumerate().take(k_nn) {
             col_p.push(j);
-            val_p.push(ss.sqrt());
+            val_p.push(cur_p[m]);
         }
         row_p[i + 1] = col_p.len();
     }
@@ -261,13 +266,16 @@ fn train_iterations(
         tree.compute_edge_forces(&y, row_p, col_p, &p, n, &mut pos_f);
         let mut neg_f = vec![0.0f64; n * D];
         let mut sum_q = 0.0;
+        // Each point's forces go to its OWN slice of neg_f (the C++ passes
+        // `neg_f + n * D`); a shared slice would let every point overwrite
+        // the previous one's repulsion and the embedding would collapse into
+        // the all-coincident state.
         for i in 0..n {
-            sum_q += tree.compute_non_edge_forces(&y, i, theta, &mut neg_f);
+            sum_q += tree.compute_non_edge_forces(&y, i, theta, &mut neg_f[i * D..(i + 1) * D]);
         }
         for i in 0..n * D {
             dy[i] = pos_f[i] - neg_f[i] / sum_q;
         }
-
         for i in 0..n * D {
             gains[i] = if sign_tsne(dy[i]) != sign_tsne(uy[i]) {
                 gains[i] + 0.2
@@ -296,6 +304,60 @@ fn sign_tsne(x: f64) -> f64 {
         -1.0
     } else {
         1.0
+    }
+}
+
+/// `computeProbabilities` (tsne.cpp): calibrate one row of the input
+/// affinities to the target perplexity. A binary search on the Gaussian
+/// precision beta makes the row's Shannon entropy equal log(perplexity) to
+/// within 1e-5 (at most 200 iterations, as the C++ does); the row is then
+/// normalised to sum 1. The distances are euclidean (not squared).
+fn compute_probabilities(perplexity: f64, distances: &[f64], cur_p: &mut [f64]) {
+    let k = distances.len();
+    let mut beta = 1.0f64;
+    let mut min_beta = f64::MIN;
+    let mut max_beta = f64::MAX;
+    let tol = 1e-5;
+    // DBL_MIN in the C++ is the smallest POSITIVE double, not the most negative
+    let mut sum_p = f64::MIN_POSITIVE;
+    let mut iter = 0;
+    while iter < 200 {
+        // Gaussian kernel row: exp(-beta * d²)
+        for (cur, d) in cur_p.iter_mut().zip(distances.iter()) {
+            *cur = (-beta * d * d).exp();
+        }
+        sum_p = f64::MIN_POSITIVE;
+        for v in cur_p.iter().take(k) {
+            sum_p += *v;
+        }
+        let mut h = 0.0;
+        for (d, v) in distances.iter().zip(cur_p.iter()) {
+            h += beta * (d * d * v);
+        }
+        h = h / sum_p + sum_p.ln();
+        let h_diff = h - perplexity.ln();
+        if h_diff < tol && -h_diff < tol {
+            break;
+        } else if h_diff > 0.0 {
+            min_beta = beta;
+            beta = if max_beta == f64::MAX || max_beta == f64::MIN {
+                beta * 2.0
+            } else {
+                (beta + max_beta) / 2.0
+            };
+        } else {
+            max_beta = beta;
+            beta = if min_beta == f64::MIN || min_beta == f64::MAX {
+                beta / 2.0
+            } else {
+                (beta + min_beta) / 2.0
+            };
+        }
+        iter += 1;
+    }
+    // Row-normalise with the sum from the last beta
+    for v in cur_p.iter_mut().take(k) {
+        *v /= sum_p;
     }
 }
 
@@ -400,7 +462,7 @@ fn symmetrize(
 // SPTree — transliteration of Rtsne's sptree.cpp (van der Maaten), fixed at
 // two dimensions and QT_NODE_CAPACITY = 1.
 // ---------------------------------------------------------------------------
-struct SPTree {
+pub struct SPTree {
     corner: [f64; 2],
     width: [f64; 2],
     center_of_mass: [f64; 2],
@@ -417,7 +479,7 @@ impl SPTree {
     /// The root constructor: mean and extent of the map, `width = max(max -
     /// mean, mean - min) + 1e-5` per axis, then all points inserted.
     #[allow(clippy::needless_range_loop)] // fixed 2-d indexing over interleaved coordinates
-    fn new_root(data: &[f64], n: usize) -> SPTree {
+    pub fn new_root(data: &[f64], n: usize) -> SPTree {
         let mut mean = [0.0f64; 2];
         let mut min = [f64::MAX; 2];
         let mut max = [f64::NEG_INFINITY; 2];
@@ -556,7 +618,7 @@ impl SPTree {
     }
 
     /// `computeNonEdgeForces`: the Barnes–Hut repulsion for one point.
-    fn compute_non_edge_forces(
+    pub fn compute_non_edge_forces(
         &self,
         data: &[f64],
         point_index: usize,
@@ -676,7 +738,37 @@ pub fn jacobi_eigen(a: &mut [f64], d: usize) -> (Vec<f64>, Vec<f64>) {
 
 #[cfg(test)]
 mod tests {
-    use super::{jacobi_eigen, pca_scaled};
+    use super::{compute_probabilities, jacobi_eigen, pca_scaled};
+
+    #[test]
+    fn probability_rows_hit_the_target_perplexity() {
+        // A realistic row: 90 distances with a cluster of close neighbours
+        // and a spread-out tail. After the beta search the Shannon entropy
+        // of the row must equal log(perplexity) within the search's 1e-5.
+        let distances: Vec<f64> = (0..90usize)
+            .map(|i| 0.1 + (i as f64) * 0.08 + ((i * 7) % 5) as f64 * 0.02)
+            .collect();
+        let mut p = vec![0.0; 90];
+        compute_probabilities(30.0, &distances, &mut p);
+        let sum: f64 = p.iter().sum();
+        assert!((sum - 1.0).abs() < 1e-12, "row sums to {sum}");
+        let h = -p
+            .iter()
+            .map(|&v| if v > 0.0 { v * v.ln() } else { 0.0 })
+            .sum::<f64>();
+        assert!(
+            (h - 30.0f64.ln()).abs() < 1e-4,
+            "entropy {h} vs log(30) = {}",
+            30.0f64.ln()
+        );
+        // the probabilities decay with distance (a Gaussian, not raw values)
+        let max_first = p.iter().take(10).cloned().fold(0.0, f64::max);
+        let max_last = p.iter().rev().take(10).cloned().fold(0.0, f64::max);
+        assert!(
+            max_first > max_last * 10.0,
+            "far neighbours must be down-weighted"
+        );
+    }
 
     #[test]
     fn jacobi_recovers_a_diagonal_and_the_eigen_equation() {
@@ -737,6 +829,59 @@ mod tests {
                 assert!(
                     ((d1 - d2) / d1.max(1.0)).abs() < 1e-9,
                     "distance {i}-{j}: {d1} vs {d2}"
+                );
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod sptree_tests {
+    use super::SPTree;
+
+    #[test]
+    fn non_edge_forces_match_a_brute_force_sum() {
+        // 6 well-separated 2-d points; the Barnes-Hut summarisation must
+        // agree with the exact per-point sum to within the approximation's
+        // own tolerance when theta is small, and the exact answer at
+        // theta = 0 (every leaf visited).
+        let data: Vec<f64> = vec![
+            -10.0, -10.0, 10.0, -10.0, -10.0, 10.0, 10.0, 10.0, 0.1, 0.05, -0.2, 0.3,
+        ];
+        let n = 6;
+        let tree = SPTree::new_root(&data, n);
+        let query = 4usize; // the point near the origin
+        for theta in [0.0f64, 0.5] {
+            let mut neg_f = [0.0f64; 2];
+            let got = tree.compute_non_edge_forces(&data, query, theta, &mut neg_f);
+            let mut want = 0.0;
+            let mut want_f = [0.0f64; 2];
+            for j in 0..n {
+                if j == query {
+                    continue;
+                }
+                let mut sqdist = 0.0;
+                let mut buff = [0.0f64; 2];
+                for k in 0..2 {
+                    buff[k] = data[query * 2 + k] - data[j * 2 + k];
+                    sqdist += buff[k] * buff[k];
+                }
+                let q = 1.0 / (1.0 + sqdist);
+                want += q;
+                for k in 0..2 {
+                    want_f[k] += q * q * buff[k];
+                }
+            }
+            assert!(
+                (got - want).abs() < 1e-9,
+                "theta={theta}: sum_q {got} vs exact {want}"
+            );
+            for k in 0..2 {
+                assert!(
+                    (neg_f[k] - want_f[k]).abs() < 1e-6,
+                    "theta={theta}: neg_f[{k}] {} vs exact {}",
+                    neg_f[k],
+                    want_f[k]
                 );
             }
         }

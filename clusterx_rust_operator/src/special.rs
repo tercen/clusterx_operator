@@ -5,8 +5,9 @@
 //! by inverting the t CDF, whose upper tail is a regularised incomplete beta
 //! function evaluated with the standard continued fraction (Lentz), then
 //! bisecting to machine precision. Agreement with R's `qt` is at the 1e-11
-//! level (checked against `tests/parity/qt_grid.csv`, dumped from R at
-//! %.17g), which is orders of magnitude finer than any margin the ESD test
+//! level (R 4.3.3 reference values are asserted inline in the unit test),
+//! which is orders of magnitude finer than any margin the ESD test actually
+//! decides on.
 //! actually decides on.
 
 /// Regularised incomplete beta function I_x(a, b).

@@ -31,7 +31,7 @@ Parity with the R reference, decided by golden-file comparison on identical inpu
 |---|---|---|
 | `dimReduction = NULL` | exact: dc (bitwise), rho, delta, peakID, labels | `lucas_*`, `synthetic12k_*` fixtures (100 and 12000 observations; the latter exercises the `sample(1:n, 10000)` down-sample with R's own RNG stream) |
 | `dimReduction = pca` | exact labels; mapped values up to LAPACK's arbitrary singular-vector sign | `lucas_pca_*` fixtures |
-| `dimReduction = tsne` | reseed envelope: the port's labels sit inside the spread the reference itself produces across seeds (ARI) | `lucas_tsne_envelope.csv`; the core is additionally checked label-exactly on the reference's own t-SNE mapping |
+| `dimReduction = tsne` | reseed envelope: the port's labels reach an ARI of at least 0.10 against the reference's own seed-42 labels (above a random partition, so the check can fail) | `lucas_tsne_envelope.csv`; the core is additionally checked stage-by-stage on the reference's own t-SNE mapping |
 
 Deviations from the reference (all documented in `CLAUDE.md`): missing measurements are refused rather than producing all-`NA` labels; the distance-cutoff search gives up instead of looping forever on degenerate shapes; and the reference's `pdist` float32 arithmetic is reproduced, not "fixed".
 
